@@ -4,3 +4,4 @@ python-dotenv==1.1.1
 requests==2.32.4
 Flask==3.0.0
 Werkzeug==3.0.1
+walrus-python==0.1.0
