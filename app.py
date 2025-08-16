@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from gemini_svg_generator import GeminiSVGGenerator
+from walrus_storage import WalrusStorage
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -7,8 +8,9 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Initialize generator
+# Initialize generator and storage
 generator = GeminiSVGGenerator()
+walrus_storage = WalrusStorage()
 
 # Allowed image extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
@@ -19,11 +21,11 @@ def allowed_file(filename):
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "service": "Gemini SVG Generator"})
+    return jsonify({"status": "healthy", "service": "Gemini SVG Generator with Walrus Storage"})
 
 @app.route('/generate/text', methods=['POST'])
 def generate_from_text():
-    """Generate SVG from text prompt"""
+    """Generate SVG from text prompt and store in Walrus"""
     try:
         data = request.get_json()
         if not data or 'prompt' not in data:
@@ -36,19 +38,21 @@ def generate_from_text():
         # Generate SVG and metadata
         svg_content, metadata = generator.generate_from_prompt(prompt)
         
-        # Generate unique filename
-        filename = f"text_generated_{uuid.uuid4().hex[:8]}"
+        # Upload to Walrus storage
+        upload_result = walrus_storage.upload_svg(svg_content, metadata)
         
-        # Save files
-        generator.save_generation(svg_content, metadata, filename)
+        # Get SVG URL
+        svg_url = walrus_storage.get_svg_url(upload_result["svg_blob_id"])
         
-        # Return response with file paths
+        # Return response with Walrus info
         response = {
             "success": True,
-            "filename": filename,
-            "svg_url": f"/download/svg/{filename}.svg",
-            "metadata_url": f"/download/metadata/{filename}.json",
-            "metadata": metadata
+            "svg_blob_id": upload_result["svg_blob_id"],
+            "svg_object_id": upload_result["svg_object_id"],
+            "svg_url": svg_url,
+            "metadata_blob_id": upload_result["metadata_blob_id"],
+            "metadata_object_id": upload_result["metadata_object_id"],
+            "metadata": upload_result["metadata"]
         }
         
         return jsonify(response), 200
@@ -58,7 +62,7 @@ def generate_from_text():
 
 @app.route('/generate/image', methods=['POST'])
 def generate_from_image():
-    """Generate SVG from uploaded image"""
+    """Generate SVG from uploaded image and store in Walrus"""
     try:
         # Check if image file is present
         if 'image' not in request.files:
@@ -84,22 +88,24 @@ def generate_from_image():
             # Generate SVG from image
             svg_content, metadata = generator.generate_from_image(temp_path, prompt)
             
-            # Generate unique filename
-            filename = f"image_generated_{uuid.uuid4().hex[:8]}"
+            # Upload to Walrus storage
+            upload_result = walrus_storage.upload_svg(svg_content, metadata)
             
-            # Save files
-            generator.save_generation(svg_content, metadata, filename)
+            # Get SVG URL
+            svg_url = walrus_storage.get_svg_url(upload_result["svg_blob_id"])
             
             # Clean up temp file
             os.remove(temp_path)
             
-            # Return response
+            # Return response with Walrus info
             response = {
                 "success": True,
-                "filename": filename,
-                "svg_url": f"/download/svg/{filename}.svg",
-                "metadata_url": f"/download/metadata/{filename}.json",
-                "metadata": metadata
+                "svg_blob_id": upload_result["svg_blob_id"],
+                "svg_object_id": upload_result["svg_object_id"],
+                "svg_url": svg_url,
+                "metadata_blob_id": upload_result["metadata_blob_id"],
+                "metadata_object_id": upload_result["metadata_object_id"],
+                "metadata": upload_result["metadata"]
             }
             
             return jsonify(response), 200
@@ -113,63 +119,46 @@ def generate_from_image():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/download/svg/<filename>', methods=['GET'])
-def download_svg(filename):
-    """Download SVG file"""
+@app.route('/download/svg/<blob_id>', methods=['GET'])
+def download_svg(blob_id):
+    """Download SVG from Walrus by blob ID"""
     try:
-        filepath = os.path.join("./output/svg", filename)
-        if not os.path.exists(filepath):
-            return jsonify({"error": "File not found"}), 404
-        
-        return send_file(filepath, mimetype='image/svg+xml')
+        svg_content = walrus_storage.download_svg(blob_id)
+        return svg_content, 200, {'Content-Type': 'image/svg+xml'}
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/download/metadata/<filename>', methods=['GET'])
-def download_metadata(filename):
-    """Download metadata file"""
+@app.route('/download/metadata/<blob_id>', methods=['GET'])
+def download_metadata(blob_id):
+    """Download metadata from Walrus by blob ID"""
     try:
-        filepath = os.path.join("./output/metadata", filename)
-        if not os.path.exists(filepath):
-            return jsonify({"error": "File not found"}), 404
-        
-        return send_file(filepath, mimetype='application/json')
+        metadata = walrus_storage.download_metadata(blob_id)
+        return jsonify(metadata), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/files', methods=['GET'])
-def list_files():
-    """List all generated files"""
+@app.route('/svg/<blob_id>', methods=['GET'])
+def get_svg_url(blob_id):
+    """Get SVG URL from Walrus blob ID"""
     try:
-        svg_files = []
-        metadata_files = []
-        
-        # Get SVG files
-        svg_dir = "./output/svg"
-        if os.path.exists(svg_dir):
-            for file in os.listdir(svg_dir):
-                if file.endswith('.svg'):
-                    svg_files.append({
-                        "filename": file,
-                        "download_url": f"/download/svg/{file}"
-                    })
-        
-        # Get metadata files
-        metadata_dir = "./output/metadata"
-        if os.path.exists(metadata_dir):
-            for file in os.listdir(metadata_dir):
-                if file.endswith('.json'):
-                    metadata_files.append({
-                        "filename": file,
-                        "download_url": f"/download/metadata/{file}"
-                    })
-        
+        svg_url = walrus_storage.get_svg_url(blob_id)
         return jsonify({
-            "svg_files": svg_files,
-            "metadata_files": metadata_files,
-            "total_files": len(svg_files)
+            "blob_id": blob_id,
+            "svg_url": svg_url
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/blobs', methods=['GET'])
+def list_blobs():
+    """List all blobs in Walrus (placeholder)"""
+    try:
+        # Note: Current Walrus SDK doesn't have a list method
+        # This is a placeholder for future implementation
+        return jsonify({
+            "message": "Blob listing not yet implemented in current Walrus SDK",
+            "suggestion": "Use individual blob IDs from generation responses"
         })
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
