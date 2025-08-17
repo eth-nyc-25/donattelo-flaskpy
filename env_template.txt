@@ -1,0 +1,8 @@
+# Walrus Storage Configuration
+# Copy this file to .env and fill in your values
+
+# Walrus bucket name (optional, defaults to 'images')
+WALRUS_BUCKET=images
+
+# Add any other environment variables your application needs
+# For example, API keys, database URLs, etc.
