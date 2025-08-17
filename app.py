@@ -6,9 +6,15 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 import io
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Configure CORS to allow requests from your Next.js frontend
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"], 
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"])
 
 # Initialize services
 analyzer = ImageAnalyzer()

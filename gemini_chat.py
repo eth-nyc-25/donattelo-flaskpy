@@ -10,7 +10,7 @@ class GeminiChat:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.chat = self.model.start_chat(history=[])
     
     def send_message(self, message: str, image_context: dict = None):
