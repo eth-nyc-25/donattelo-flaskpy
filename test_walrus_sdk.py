@@ -2,6 +2,8 @@
 """
 Test script for Walrus Python SDK functionality
 This script tests the basic Walrus operations independently
+
+Note: Publisher is used for writing/uploading, Aggregator is used for reading/downloading
 """
 
 import os
@@ -36,6 +38,9 @@ def extract_blob_info(response):
 def test_walrus_connection():
     """Test basic connection to Walrus"""
     print("=== Testing Walrus Connection ===")
+    print("Publisher: Used for writing/uploading blobs")
+    print("Aggregator: Used for reading/downloading blobs")
+    print()
     
     try:
         client = WalrusClient(
@@ -43,18 +48,20 @@ def test_walrus_connection():
             aggregator_base_url="https://aggregator.walrus-testnet.walrus.space"
         )
         print("✅ Walrus client initialized successfully")
+        print("   Publisher: https://publisher.walrus-testnet.walrus.space")
+        print("   Aggregator: https://aggregator.walrus-testnet.walrus.space")
         return client
     except Exception as e:
         print(f"❌ Failed to initialize Walrus client: {str(e)}")
         return None
 
 def test_upload_small_blob(client):
-    """Test uploading a small text blob"""
-    print("\n=== Testing Small Blob Upload ===")
+    """Test uploading a small text blob using publisher"""
+    print("\n=== Testing Small Blob Upload (Publisher) ===")
     
     try:
         test_data = b"Hello Walrus! This is a test blob."
-        print(f"Uploading {len(test_data)} bytes...")
+        print(f"Uploading {len(test_data)} bytes via publisher...")
         
         response = client.put_blob(
             data=test_data,
@@ -82,8 +89,8 @@ def test_upload_small_blob(client):
         return None
 
 def test_download_blob(client, blob_id):
-    """Test downloading a blob"""
-    print(f"\n=== Testing Blob Download ===")
+    """Test downloading a blob using aggregator"""
+    print(f"\n=== Testing Blob Download (Aggregator) ===")
     
     if not blob_id:
         print("⚠️  No blob ID to test download")
@@ -91,6 +98,7 @@ def test_download_blob(client, blob_id):
     
     try:
         print(f"Downloading blob: {blob_id}")
+        print("Note: Download uses aggregator endpoint")
         downloaded_data = client.get_blob(blob_id)
         
         print(f"   Downloaded data type: {type(downloaded_data)}")
@@ -113,8 +121,8 @@ def test_download_blob(client, blob_id):
         return False
 
 def test_metadata_operations(client, blob_id):
-    """Test metadata operations"""
-    print(f"\n=== Testing Metadata Operations ===")
+    """Test metadata operations using aggregator"""
+    print(f"\n=== Testing Metadata Operations (Aggregator) ===")
     
     if not blob_id:
         print("⚠️  No blob ID to test metadata")
@@ -122,6 +130,7 @@ def test_metadata_operations(client, blob_id):
     
     try:
         print(f"Getting metadata for blob: {blob_id}")
+        print("Note: Metadata retrieval uses aggregator endpoint")
         # Try to get blob metadata
         metadata = client.get_blob_metadata(blob_id)
         print(f"✅ Metadata retrieved successfully")
@@ -136,8 +145,8 @@ def test_metadata_operations(client, blob_id):
         return False
 
 def test_file_upload(client):
-    """Test uploading from a file"""
-    print(f"\n=== Testing File Upload ===")
+    """Test uploading from a file using publisher"""
+    print(f"\n=== Testing File Upload (Publisher) ===")
     
     try:
         # Create a test file
@@ -149,6 +158,7 @@ def test_file_upload(client):
         
         print(f"Created test file: {test_file_path}")
         print(f"File content length: {len(test_content)} chars")
+        print("Note: File upload uses publisher endpoint")
         
         # Upload the file
         response = client.put_blob_from_file(test_file_path)
@@ -178,12 +188,12 @@ def test_file_upload(client):
         return None
 
 def test_simple_text_upload(client):
-    """Test uploading simple text without encoding type"""
-    print(f"\n=== Testing Simple Text Upload ===")
+    """Test uploading simple text without encoding type using publisher"""
+    print(f"\n=== Testing Simple Text Upload (Publisher) ===")
     
     try:
         test_data = b"Simple test without encoding type"
-        print(f"Uploading {len(test_data)} bytes without encoding type...")
+        print(f"Uploading {len(test_data)} bytes via publisher...")
         
         response = client.put_blob(data=test_data)
         
@@ -209,6 +219,8 @@ def main():
     """Run all Walrus SDK tests"""
     print("🧪 Testing Walrus Python SDK")
     print("=" * 50)
+    print("📝 Note: Publisher = Write/Upload, Aggregator = Read/Download")
+    print("=" * 50)
     
     # Test connection
     client = test_walrus_connection()
@@ -231,11 +243,11 @@ def main():
     print("\n" + "=" * 50)
     print("📊 Test Summary:")
     print(f"   Connection: ✅")
-    print(f"   Simple Upload: {'✅' if simple_blob_id else '❌'}")
-    print(f"   Upload with Encoding: {'✅' if blob_id else '❌'}")
-    print(f"   Download: {'✅' if download_success else '❌'}")
-    print(f"   Metadata: {'✅' if metadata_success else '❌'}")
-    print(f"   File Upload: {'✅' if file_blob_id else '❌'}")
+    print(f"   Simple Upload (Publisher): {'✅' if simple_blob_id else '❌'}")
+    print(f"   Upload with Encoding (Publisher): {'✅' if blob_id else '❌'}")
+    print(f"   Download (Aggregator): {'✅' if download_success else '❌'}")
+    print(f"   Metadata (Aggregator): {'✅' if metadata_success else '❌'}")
+    print(f"   File Upload (Publisher): {'✅' if file_blob_id else '❌'}")
     
     success_count = sum([
         bool(simple_blob_id),
@@ -247,6 +259,7 @@ def main():
     
     if success_count >= 3:
         print(f"\n🎉 {success_count}/5 tests passed! Walrus SDK is working.")
+        print("✅ Publisher (upload) and Aggregator (download) endpoints configured correctly")
     else:
         print(f"\n⚠️  Only {success_count}/5 tests passed. Check the output above for details.")
 

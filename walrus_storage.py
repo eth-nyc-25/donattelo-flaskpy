@@ -37,7 +37,7 @@ class WalrusStorage:
             return blob_id, object_id
 
     def upload_image(self, image_data, metadata):
-        """Upload image and its metadata to Walrus"""
+        """Upload image and its metadata to Walrus using publisher"""
         try:
             # Upload image data (without encoding_type to avoid HTTP 400 errors)
             image_response = self.client.put_blob(data=image_data)
@@ -62,11 +62,11 @@ class WalrusStorage:
             raise Exception(f"Upload failed: {str(e)}")
 
     def get_image_url(self, blob_id):
-        """Get the URL for an image blob"""
-        return f"https://publisher.walrus-testnet.walrus.space/v1/blobs/{blob_id}"
+        """Get the URL for an image blob using aggregator for reading"""
+        return f"https://aggregator.walrus-testnet.walrus.space/v1/blobs/{blob_id}"
 
     def download_image(self, blob_id):
-        """Download image data from Walrus"""
+        """Download image data from Walrus using aggregator"""
         try:
             return self.client.get_blob(blob_id)
         except WalrusAPIError as e:
@@ -75,7 +75,7 @@ class WalrusStorage:
             raise Exception(f"Download failed: {str(e)}")
 
     def download_metadata(self, blob_id):
-        """Download and parse metadata from Walrus"""
+        """Download and parse metadata from Walrus using aggregator"""
         try:
             metadata_bytes = self.client.get_blob(blob_id)
             return json.loads(metadata_bytes.decode('utf-8'))
@@ -85,7 +85,7 @@ class WalrusStorage:
             raise Exception(f"Metadata download failed: {str(e)}")
 
     def get_blob_metadata(self, blob_id):
-        """Get blob metadata from Walrus"""
+        """Get blob metadata from Walrus using aggregator"""
         try:
             return self.client.get_blob_metadata(blob_id)
         except WalrusAPIError as e:

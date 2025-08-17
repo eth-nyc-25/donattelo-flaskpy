@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_file
 from image_analyzer import ImageAnalyzer
 from walrus_storage import WalrusStorage
+from gemini_chat import GeminiChat
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -12,6 +13,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Initialize services
 analyzer = ImageAnalyzer()
 walrus_storage = WalrusStorage()
+gemini_chat = GeminiChat()
 
 # Allowed image extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
@@ -33,6 +35,15 @@ def chat_with_gemini():
         result = gemini_chat.send_message(message, image_context)
         return jsonify(result), 200
         
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/chat/history', methods=['GET'])
+def get_chat_history():
+    """Get chat history"""
+    try:
+        history = gemini_chat.get_chat_history()
+        return jsonify({"history": history}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
