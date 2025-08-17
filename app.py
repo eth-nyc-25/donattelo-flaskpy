@@ -19,6 +19,23 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+@app.route('/chat', methods=['POST'])
+def chat_with_gemini():
+    """Chat with Gemini AI"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        image_context = data.get('image_context', None)
+        
+        if not message:
+            return jsonify({"error": "No message provided"}), 400
+        
+        result = gemini_chat.send_message(message, image_context)
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
