@@ -58,6 +58,15 @@ def get_chat_history():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/chat/reset', methods=['POST'])
+def reset_chat():
+    """Reset chat history while maintaining Donatello's personality"""
+    try:
+        result = gemini_chat.reset_chat()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/analyze/image', methods=['POST'])
 def analyze_image():
     """Analyze image and store result in Walrus"""
