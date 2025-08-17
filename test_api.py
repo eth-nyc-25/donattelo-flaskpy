@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 
 # API base URL
 BASE_URL = "http://localhost:5000"
@@ -12,92 +13,64 @@ def test_health():
     print(f"Response: {response.json()}")
     print()
 
-def test_text_generation():
-    """Test text-to-SVG generation with Walrus storage"""
-    print("=== Testing Text-to-SVG Generation with Walrus ===")
+def test_image_analysis():
+    """Test image analysis and storage in Walrus"""
+    print("=== Testing Image Analysis with Walrus ===")
     
-    data = {
-        "prompt": "A futuristic robot with glowing blue eyes and metallic armor"
-    }
+    # Test image path
+    test_image_path = "./test/img/image.png"
     
-    response = requests.post(f"{BASE_URL}/generate/text", json=data)
-    print(f"Status: {response.status_code}")
-    
-    if response.status_code == 200:
-        result = response.json()
-        print(f"✅ Success! Generated SVG stored in Walrus")
-        print(f"📁 SVG Blob ID: {result['svg_blob_id']}")
-        print(f"📁 SVG Object ID: {result['svg_object_id']}")
-        print(f"🌐 SVG URL: {result['svg_url']}")
-        print(f"📁 Metadata Blob ID: {result['metadata_blob_id']}")
-        print(f"📁 Metadata Object ID: {result['metadata_object_id']}")
-        print(f"📝 Metadata: {json.dumps(result['metadata'], indent=2)}")
-        
-        # Test downloading the SVG
-        print("\n--- Testing SVG Download ---")
-        svg_response = requests.get(f"{BASE_URL}/download/svg/{result['svg_blob_id']}")
-        if svg_response.status_code == 200:
-            print(f"✅ SVG download successful (length: {len(svg_response.text)} chars)")
-        else:
-            print(f"❌ SVG download failed: {svg_response.text}")
-            
-    else:
-        print(f"❌ Error: {response.json()}")
-    print()
-
-def test_image_generation(image_path):
-    """Test image-to-SVG generation with Walrus storage"""
-    print("=== Testing Image-to-SVG Generation with Walrus ===")
-    
-    if not image_path or not image_path.strip():
-        print("⚠️  No image path provided, skipping image test")
+    if not os.path.exists(test_image_path):
+        print(f"⚠️  Test image not found: {test_image_path}")
+        print("Available test images:")
+        test_dir = "./test/img"
+        if os.path.exists(test_dir):
+            for file in os.listdir(test_dir):
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')):
+                    print(f"  - {test_dir}/{file}")
         print()
         return
     
     try:
-        with open(image_path, 'rb') as f:
+        with open(test_image_path, 'rb') as f:
             files = {'image': f}
-            data = {'prompt': 'Make it more colorful and add magical elements'}
             
-            response = requests.post(f"{BASE_URL}/generate/image", files=files, data=data)
+            response = requests.post(f"{BASE_URL}/analyze/image", files=files)
             print(f"Status: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ Success! Generated SVG stored in Walrus")
-                print(f"📁 SVG Blob ID: {result['svg_blob_id']}")
-                print(f"📁 SVG Object ID: {result['svg_object_id']}")
-                print(f"🌐 SVG URL: {result['svg_url']}")
+                print(f"✅ Success! Image analyzed and stored in Walrus")
+                print(f"📁 Image Blob ID: {result['image_blob_id']}")
+                print(f"📁 Image Object ID: {result['image_object_id']}")
+                print(f"🌐 Image URL: {result['image_url']}")
                 print(f"📁 Metadata Blob ID: {result['metadata_blob_id']}")
                 print(f"📁 Metadata Object ID: {result['metadata_object_id']}")
                 print(f"📝 Metadata: {json.dumps(result['metadata'], indent=2)}")
                 
-                # Test downloading the SVG
-                print("\n--- Testing SVG Download ---")
-                svg_response = requests.get(f"{BASE_URL}/download/svg/{result['svg_blob_id']}")
-                if svg_response.status_code == 200:
-                    print(f"✅ SVG download successful (length: {len(svg_response.text)} chars)")
+                # Test downloading the image
+                print("\n--- Testing Image Download ---")
+                image_response = requests.get(f"{BASE_URL}/image/{result['image_blob_id']}")
+                if image_response.status_code == 200:
+                    print(f"✅ Image download successful (length: {len(image_response.content)} bytes)")
                 else:
-                    print(f"❌ SVG download failed: {svg_response.text}")
+                    print(f"❌ Image download failed: {image_response.text}")
+                
+                # Test downloading the metadata
+                print("\n--- Testing Metadata Download ---")
+                metadata_response = requests.get(f"{BASE_URL}/metadata/{result['metadata_blob_id']}")
+                if metadata_response.status_code == 200:
+                    print(f"✅ Metadata download successful")
+                    print(f"   Metadata: {json.dumps(metadata_response.json(), indent=2)}")
+                else:
+                    print(f"❌ Metadata download failed: {metadata_response.text}")
                     
             else:
                 print(f"❌ Error: {response.json()}")
     except FileNotFoundError:
-        print(f"❌ Image file not found: {image_path}")
+        print(f"❌ Image file not found: {test_image_path}")
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-    print()
-
-def test_svg_url_endpoint():
-    """Test getting SVG URL from blob ID"""
-    print("=== Testing SVG URL Endpoint ===")
-    
-    # This would need a valid blob ID from a previous generation
-    # For now, just test the endpoint structure
-    test_blob_id = "test_blob_id"
-    response = requests.get(f"{BASE_URL}/svg/{test_blob_id}")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
     print()
 
 def test_blobs_endpoint():
@@ -110,21 +83,17 @@ def test_blobs_endpoint():
 
 def main():
     """Run all tests"""
-    print("🚀 Testing Gemini SVG Generator API with Walrus Storage")
+    print("🚀 Testing Image Analyzer API with Walrus Storage")
     print("=" * 60)
     
     try:
         # Test health check
         test_health()
         
-        # Test text generation
-        test_text_generation()
-        
-        # Test image generation (if image exists)
-        test_image_generation("input_image.jpg")  # Change this to your image path
+        # Test image analysis
+        test_image_analysis()
         
         # Test other endpoints
-        test_svg_url_endpoint()
         test_blobs_endpoint()
         
     except requests.exceptions.ConnectionError:
