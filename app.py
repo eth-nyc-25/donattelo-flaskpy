@@ -27,6 +27,11 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({"status": "healthy", "service": "Image Analyzer with Walrus Storage"})
+
 @app.route('/chat', methods=['POST'])
 def chat_with_gemini():
     """Chat with Gemini AI"""
@@ -52,11 +57,6 @@ def get_chat_history():
         return jsonify({"history": history}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({"status": "healthy", "service": "Image Analyzer with Walrus Storage"})
 
 @app.route('/analyze/image', methods=['POST'])
 def analyze_image():
